@@ -8,7 +8,7 @@ export class ErrorUtils {
    * @param errors Array of validation errors
    * @returns Error message
    */
-  static handleValidationErrors(errors: ValidationError[]): string {
+  public handleValidationErrors(errors: ValidationError[]): string {
     return errors
       .map((error: ValidationError) => {
         if (error.constraints) {
@@ -24,7 +24,7 @@ export class ErrorUtils {
    * @param error Sequelize error
    * @returns HttpException
    */
-  static handleSequelizeError(error: any): HttpException {
+  public handleSequelizeError(error: any): HttpException {
     logger.error('Sequelize error:', error);
 
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -44,11 +44,13 @@ export class ErrorUtils {
    * @param error Error object
    * @param req Request object
    */
-  static logError(error: HttpException, req: any): void {
+  public logError(error: HttpException, req: any): void {
     logger.error(
       `${error.status} - ${error.message} - ${req.originalUrl} - ${req.method} - ${req.ip} - ${
         error.stack || 'No stack trace'
       }`
     );
   }
-} 
+}
+
+export default new ErrorUtils(); 

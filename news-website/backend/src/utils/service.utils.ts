@@ -2,6 +2,7 @@ import { Op, WhereOptions, FindAndCountOptions } from 'sequelize';
 import { Model } from 'sequelize';
 import { BadRequestException } from '../exceptions/HttpException';
 import logger from './logger';
+import { UserRole } from '../models/User.model';
 
 export interface PaginationParams {
   page?: number;
@@ -80,12 +81,23 @@ export class ServiceUtils {
   }
 
   /**
+   * Check if user has permission to perform action
+   * @param userId User ID
+   * @param userRole User role
+   * @param resourceUserId Resource owner ID
+   * @returns boolean
+   */
+  public hasPermission(userId: number, userRole: string, resourceUserId: number): boolean {
+    return userRole === UserRole.ADMIN || userId === resourceUserId;
+  }
+
+  /**
    * Handle database errors
    * @param error Error object
    * @param context Error context
    * @throws BadRequestException
    */
-  static handleDatabaseError(error: unknown, context: string): never {
+  public handleDatabaseError(error: unknown, context: string): never {
     logger.error(`Error in ${context}:`, error);
 
     if (error instanceof Error) {
@@ -108,20 +120,6 @@ export class ServiceUtils {
 
     throw new BadRequestException(`Failed to ${context}`);
   }
+}
 
-  /**
-   * Check if user has permission to access/modify resource
-   * @param currentUser Current user
-   * @param resourceOwnerId Resource owner ID
-   * @param allowedRoles Allowed roles
-   * @returns boolean
-   */
-  static hasPermission(
-    currentUser: any,
-    resourceOwnerId: number,
-    allowedRoles: string[] = ['admin']
-  ): boolean {
-    if (!currentUser) return false;
-    return allowedRoles.includes(currentUser.role) || currentUser.id === resourceOwnerId;
-  }
-} 
+export default new ServiceUtils(); 

@@ -4,7 +4,7 @@ import { User, UserAttributes, UserRole } from '../models/User.model';
 import { CreateUserDto, UpdateUserDto, UserResponseDto, ArticleResponse } from '../dto/user.dto';
 import { NotFoundException, BadRequestException } from '../exceptions/HttpException';
 import logger from '../utils/logger';
-import { ServiceUtils } from '../utils/service.utils';
+import serviceUtils, { ServiceUtils } from '../utils/service.utils';
 
 interface UserWithArticles extends UserAttributes {
   articles?: Array<ArticleResponse>;
@@ -12,6 +12,12 @@ interface UserWithArticles extends UserAttributes {
 
 @Service()
 export class UserService {
+  private readonly serviceUtils: ServiceUtils;
+
+  constructor() {
+    this.serviceUtils = serviceUtils;
+  }
+
   async getAllUsers(
     page: number = 1,
     limit: number = 10,
@@ -37,7 +43,7 @@ export class UserService {
         limit
       );
     } catch (error) {
-      ServiceUtils.handleDatabaseError(error, 'get users');
+      this.serviceUtils.handleDatabaseError(error, 'get users');
     }
   }
   
@@ -53,7 +59,7 @@ export class UserService {
 
       return new UserResponseDto(user.toJSON());
     } catch (error) {
-      ServiceUtils.handleDatabaseError(error, 'get user');
+      this.serviceUtils.handleDatabaseError(error, 'get user');
     }
   }
   
@@ -81,7 +87,7 @@ export class UserService {
 
       return new UserResponseDto(updatedUser.toJSON());
     } catch (error) {
-      ServiceUtils.handleDatabaseError(error, 'update user');
+      this.serviceUtils.handleDatabaseError(error, 'update user');
     }
   }
   
@@ -128,7 +134,7 @@ export class UserService {
       
       return new UserResponseDto(user.toJSON());
     } catch (error) {
-      ServiceUtils.handleDatabaseError(error, 'get user profile');
+      this.serviceUtils.handleDatabaseError(error, 'get user profile');
     }
   }
   

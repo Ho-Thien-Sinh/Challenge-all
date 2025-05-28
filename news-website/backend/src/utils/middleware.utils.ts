@@ -1,22 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
 import { validate, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { BadRequestException, NotFoundException } from '../exceptions/HttpException';
+import { BadRequestException, NotFoundException, ForbiddenException } from '../exceptions/HttpException';
 import { ErrorUtils } from './error.utils';
 
 export class MiddlewareUtils {
+  private readonly errorUtils: ErrorUtils;
+
+  constructor() {
+    this.errorUtils = new ErrorUtils();
+  }
+
   /**
    * Create a validation middleware for request body
    * @param type DTO class to validate against
    * @param skipMissingProperties Whether to skip validation of missing properties
    * @returns Express middleware function
    */
-  static createValidationMiddleware(type: any, skipMissingProperties = false) {
+  public createValidationMiddleware(type: any, skipMissingProperties = false) {
     return (req: Request, res: Response, next: NextFunction) => {
       validate(plainToInstance(type, req.body), { skipMissingProperties })
         .then((errors: ValidationError[]) => {
           if (errors.length > 0) {
-            const message = ErrorUtils.handleValidationErrors(errors);
+            const message = this.errorUtils.handleValidationErrors(errors);
             next(new BadRequestException(message));
           } else {
             next();
@@ -30,12 +36,12 @@ export class MiddlewareUtils {
    * @param type DTO class to validate against
    * @returns Express middleware function
    */
-  static createQueryValidationMiddleware(type: any) {
+  public createQueryValidationMiddleware(type: any) {
     return (req: Request, res: Response, next: NextFunction) => {
       validate(plainToInstance(type, req.query), { whitelist: true, forbidNonWhitelisted: true })
         .then((errors: ValidationError[]) => {
           if (errors.length > 0) {
-            const message = ErrorUtils.handleValidationErrors(errors);
+            const message = this.errorUtils.handleValidationErrors(errors);
             next(new BadRequestException(message));
           } else {
             // Replace query with validated and transformed query
@@ -50,7 +56,7 @@ export class MiddlewareUtils {
    * Create a not found handler middleware
    * @returns Express middleware function
    */
-  static createNotFoundHandler() {
+  public createNotFoundHandler() {
     return (req: Request, res: Response, next: NextFunction) => {
       next(new NotFoundException(`Cannot ${req.method} ${req.originalUrl}`));
     };
@@ -61,7 +67,7 @@ export class MiddlewareUtils {
    * @param allowedRoles Array of allowed roles
    * @returns Express middleware function
    */
-  static createRoleMiddleware(allowedRoles: string[]) {
+  public createRoleMiddleware(allowedRoles: string[]) {
     return (req: Request, res: Response, next: NextFunction) => {
       try {
         if (!req.user || !allowedRoles.includes(req.user.role)) {
@@ -73,4 +79,6 @@ export class MiddlewareUtils {
       }
     };
   }
-} 
+}
+
+export default new MiddlewareUtils(); 

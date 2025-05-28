@@ -40,9 +40,14 @@ interface PaginationResult<T> {
 }
 
 class UserController extends BaseController {
-  public userService = Container.get(UserService);
+  private readonly userService: UserService;
 
-  public getUsers = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  constructor() {
+    super();
+    this.userService = Container.get(UserService);
+  }
+
+  public async getUsers(req: Request, res: Response): Promise<void> {
     const query = this.parsePaginationQuery(req);
     const role = req.query.role as UserRole | undefined;
     
@@ -57,21 +62,24 @@ class UserController extends BaseController {
       role
     );
     
+    if (!result) {
+      throw new Error('Failed to get users');
+    }
+    
     this.sendPaginatedResponse(
       res,
       result.data.map(user => new UserResponseDto(user)),
       result.pagination
     );
-  });
+  }
 
-  public getUserById = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async getUserById(req: Request, res: Response): Promise<void> {
     const userId = parseInt(req.params.id);
     const user = await this.userService.getUserById(userId);
-    
     this.sendSuccess(res, new UserResponseDto(user));
-  });
+  }
 
-  public updateUser = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async updateUser(req: Request, res: Response): Promise<void> {
     const userId = parseInt(req.params.id);
     const userData: UpdateUserDto = req.body;
     
@@ -83,31 +91,27 @@ class UserController extends BaseController {
 
     const updatedUser = await this.userService.updateUser(userId, userData);
     this.sendSuccess(res, new UserResponseDto(updatedUser));
-  });
+  }
 
-  public deleteUser = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async deleteUser(req: Request, res: Response): Promise<void> {
     const userId = parseInt(req.params.id);
     this.checkPermission(req.user, userId, [UserRole.ADMIN]);
     
     await this.userService.deleteUser(userId);
     res.status(204).send();
-  });
+  }
 
-  public getCurrentUser = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    if (!req.user) {
-      throw new UnauthorizedException('User not authenticated');
-    }
-    
-    const user = await this.userService.getUserById(req.user.id);
+  public async getCurrentUser(req: Request, res: Response): Promise<void> {
+    const userId = (req as any).user.id;
+    const user = await this.userService.getUserById(userId);
     this.sendSuccess(res, new UserResponseDto(user));
-  });
+  }
 
-  public getUserProfile = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async getUserProfile(req: Request, res: Response): Promise<void> {
     const userId = parseInt(req.params.id);
-    const user = await this.userService.getUserProfile(userId);
-    
+    const user = await this.userService.getUserById(userId);
     this.sendSuccess(res, new UserResponseDto(user));
-  });
+  }
 }
 
-export default UserController;
+export default new UserController();

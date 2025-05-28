@@ -1,79 +1,96 @@
 import { Request, Response } from 'express';
 import { Container } from 'typedi';
-import { ArticleService } from '../services/article.service';
-import { CreateArticleDto, UpdateArticleDto, ArticleQueryDto } from '../dto/article.dto';
 import { BaseController } from './base.controller';
-import { UserRole } from '../types';
+import { ArticleService } from '../services/article.service';
+import { CreateArticleDto, UpdateArticleDto } from '../dto/article.dto';
+import { ArticleResponseDto } from '../dto/article.dto';
+import { UserRole } from '../models/User.model';
+import { ForbiddenException } from '../exceptions/HttpException';
+import { PaginationParams } from '../utils/service.utils';
 
 class ArticleController extends BaseController {
   public articleService = Container.get(ArticleService);
 
-  public getArticles = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  constructor() {
+    super();
+  }
+
+  public async getAllArticles(req: Request, res: Response): Promise<void> {
     const query = this.parsePaginationQuery(req);
-    const articleQuery: ArticleQueryDto = {
+    const params: PaginationParams & { category?: string; status?: string; authorId?: number } = {
       ...query,
       category: req.query.category as string,
-      status: req.query.status as any,
-      authorId: req.query.authorId as string,
-      isFeatured: req.query.isFeatured ? req.query.isFeatured === 'true' : undefined
+      status: req.query.status as string,
+      authorId: req.query.authorId ? parseInt(req.query.authorId as string) : undefined
     };
     
-    const result = await this.articleService.getAllArticles(articleQuery);
-    this.sendPaginatedResponse(res, result.data, result.pagination);
-  });
+    const result = await this.articleService.getAllArticles(params);
+    
+    this.sendPaginatedResponse(
+      res,
+      result.data,
+      result.pagination
+    );
+  }
 
-  public getArticleById = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async getArticleById(req: Request, res: Response): Promise<void> {
     const articleId = parseInt(req.params.id);
     const article = await this.articleService.getArticleById(articleId);
-    
     this.sendSuccess(res, article);
-  });
+  }
 
-  public createArticle = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async createArticle(req: Request, res: Response): Promise<void> {
     const articleData: CreateArticleDto = req.body;
-    const currentUser = (req as any).user;
+    const authorId = (req as any).user.id;
     
-    const article = await this.articleService.createArticle(articleData, currentUser?.id);
+    const article = await this.articleService.createArticle(articleData, authorId);
     this.sendSuccess(res, article, 201);
-  });
+  }
 
-  public updateArticle = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async updateArticle(req: Request, res: Response): Promise<void> {
     const articleId = parseInt(req.params.id);
     const articleData: UpdateArticleDto = req.body;
     const currentUser = (req as any).user;
     
-    this.checkPermission(currentUser, articleId, [UserRole.ADMIN, UserRole.EDITOR]);
+    const article = await this.articleService.getArticleById(articleId);
     
+    if (currentUser.role !== UserRole.ADMIN && article.authorId !== currentUser.id) {
+      throw new ForbiddenException('You do not have permission to update this article');
+    }
+
     const updatedArticle = await this.articleService.updateArticle(
       articleId,
       articleData,
       currentUser.id,
       currentUser.role
     );
-    
     this.sendSuccess(res, updatedArticle);
-  });
+  }
 
-  public deleteArticle = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  public async deleteArticle(req: Request, res: Response): Promise<void> {
     const articleId = parseInt(req.params.id);
     const currentUser = (req as any).user;
     
-    this.checkPermission(currentUser, articleId, [UserRole.ADMIN, UserRole.EDITOR]);
+    const article = await this.articleService.getArticleById(articleId);
     
+    if (currentUser.role !== UserRole.ADMIN && article.authorId !== currentUser.id) {
+      throw new ForbiddenException('You do not have permission to delete this article');
+    }
+
     await this.articleService.deleteArticle(articleId, currentUser.id, currentUser.role);
-    this.sendSuccess(res, null, 200, 'Article deleted successfully');
-  });
+    res.status(204).send();
+  }
 
-  public getCategories = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const categories = await this.articleService.getCategories();
-    this.sendSuccess(res, categories);
-  });
-
-  public getFeaturedArticles = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const limit = parseInt(req.query.limit as string) || 5;
+  public async getFeaturedArticles(req: Request, res: Response): Promise<void> {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
     const articles = await this.articleService.getFeaturedArticles(limit);
     this.sendSuccess(res, articles);
-  });
+  }
+
+  public async getArticleCategories(req: Request, res: Response): Promise<void> {
+    const categories = await this.articleService.getCategories();
+    this.sendSuccess(res, categories);
+  }
 }
 
-export default ArticleController;
+export default new ArticleController();

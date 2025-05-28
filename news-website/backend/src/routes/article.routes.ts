@@ -1,13 +1,13 @@
 import ArticleController from '../controllers/article.controller';
-import { CreateArticleDto, UpdateArticleDto, ArticleQueryDto } from '../dto/article.dto';
-import { validationMiddleware, queryValidationMiddleware } from '../middlewares/validation.middleware';
+import { CreateArticleDto, UpdateArticleDto } from '../dto/article.dto';
+import { validationMiddleware } from '../middlewares/validation.middleware';
 import { authMiddleware, optionalAuth, adminMiddleware } from '../middlewares/auth.middleware';
 import { BaseRoutes } from './base.routes';
 import { Service } from 'typedi';
 
 @Service()
 class ArticleRoutes extends BaseRoutes {
-  public articleController = new ArticleController();
+  public articleController = ArticleController;
 
   constructor() {
     super('/articles');
@@ -19,8 +19,8 @@ class ArticleRoutes extends BaseRoutes {
       this.createRoute(
         '',
         'get',
-        this.articleController.getArticles,
-        [queryValidationMiddleware(ArticleQueryDto), optionalAuth]
+        this.articleController.getAllArticles,
+        [optionalAuth]
       ),
       this.createRoute(
         '/featured',
@@ -30,7 +30,7 @@ class ArticleRoutes extends BaseRoutes {
       this.createRoute(
         '/categories',
         'get',
-        this.articleController.getCategories
+        this.articleController.getArticleCategories
       ),
       this.createRoute(
         '/:id',
@@ -63,11 +63,11 @@ class ArticleRoutes extends BaseRoutes {
       this.createRoute(
         '/admin',
         'get',
-        this.articleController.getArticles,
-        [adminMiddleware, queryValidationMiddleware(ArticleQueryDto)]
+        this.articleController.getAllArticles,
+        [adminMiddleware]
       )
     ];
   }
 }
 
-export default ArticleRoutes;
+export default new ArticleRoutes();
