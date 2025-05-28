@@ -1,0 +1,5 @@
+# Loại trừ node_modules và .env ở mọi nơi
+node_modules/
+**/node_modules/
+.env
+**/.env 

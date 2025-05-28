@@ -1,0 +1,8 @@
+{"email":"admin@test.com","level":"info","message":"Attempting user registration","timestamp":"2025-05-27T07:50:01.706Z"}
+{"level":"info","message":"Attempting to send verification email to admin@test.com","timestamp":"2025-05-27T07:50:02.000Z"}
+{"level":"info","message":"Verification email sent to admin@test.com","timestamp":"2025-05-27T07:50:06.370Z"}
+{"email":"admin@test.com","level":"info","message":"User registered successfully with ID: 5","timestamp":"2025-05-27T07:50:06.371Z"}
+{"level":"info","message":"Sending token response for user ID: 5","timestamp":"2025-05-27T07:50:06.378Z"}
+{"email":"admin@test.com","level":"info","message":"Attempting user login","timestamp":"2025-05-27T07:50:21.716Z"}
+{"email":"admin@test.com","level":"info","message":"User logged in successfully with ID: 5","timestamp":"2025-05-27T07:50:21.816Z"}
+{"level":"info","message":"Sending token response for user ID: 5","timestamp":"2025-05-27T07:50:21.817Z"}
