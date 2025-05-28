@@ -32,21 +32,21 @@ class UserRoutes {
 
     // Lấy thông tin người dùng theo ID
     this.router.get(
-      `${this.path}/:id(\\d+)`,
+      `${this.path}/:id`,
       authMiddleware,
       this.userController.getUserById
     );
 
     // Lấy thông tin chi tiết người dùng (kèm bài viết)
     this.router.get(
-      `${this.path}/:id(\\d+)/profile`,
+      `${this.path}/:id/profile`,
       authMiddleware,
       this.userController.getUserProfile
     );
 
     // Cập nhật thông tin người dùng
     this.router.patch(
-      `${this.path}/:id(\\d+)`,
+      `${this.path}/:id`,
       authMiddleware,
       validationMiddleware(UpdateUserDto, true),
       this.userController.updateUser
@@ -54,7 +54,7 @@ class UserRoutes {
 
     // Xóa người dùng (chỉ admin)
     this.router.delete(
-      `${this.path}/:id(\\d+)`,
+      `${this.path}/:id`,
       adminMiddleware,
       this.userController.deleteUser
     );

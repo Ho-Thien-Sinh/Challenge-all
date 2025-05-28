@@ -46,14 +46,14 @@ class ArticleRoutes {
 
     // Lấy chi tiết bài viết (public)
     this.router.get(
-      `${this.path}/:id(\\d+)`,
+      `${this.path}/:id`,
       optionalAuth,
       this.articleController.getArticleById
     );
 
     // Cập nhật bài viết (chỉ tác giả hoặc admin)
     this.router.patch(
-      `${this.path}/:id(\\d+)`,
+      `${this.path}/:id`,
       authMiddleware,
       validationMiddleware(UpdateArticleDto, true),
       this.articleController.updateArticle
@@ -61,7 +61,7 @@ class ArticleRoutes {
 
     // Xóa bài viết (chỉ tác giả hoặc admin)
     this.router.delete(
-      `${this.path}/:id(\\d+)`,
+      `${this.path}/:id`,
       authMiddleware,
       this.articleController.deleteArticle
     );
