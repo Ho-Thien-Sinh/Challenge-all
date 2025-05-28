@@ -1,2 +1,30 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
 .env
+.env.example
+
+# Test files
+test-*.js
+*.test.js
+
+# Script files
+scripts/
+*.js
+!src/**/*.js
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
