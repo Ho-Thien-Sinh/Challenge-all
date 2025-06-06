@@ -1,0 +1,448 @@
+import React, { useState, useEffect } from 'react';
+import { Card, List, Skeleton, Typography, Image, Space, Tag, App, Row, Col } from 'antd';
+import { ClockCircleOutlined, FireOutlined } from '@ant-design/icons';
+import tuoitreService from '../services/tuoitreService';
+import '../styles/news.css';
+
+const { Title, Paragraph } = Typography;
+
+interface Article {
+  id?: string;
+  title: string;
+  url: string;
+  description: string;
+  publishedAt: string;
+  imageUrl: string;
+}
+
+interface NewsResponse {
+  articles: Article[];
+  stats: {
+    totalArticles: number;
+    articlesWithoutImage: number;
+    articlesWithoutDescription: number;
+    articlesWithoutBoth: number;
+  };
+}
+
+const HomePage: React.FC = () => {
+  const { message } = App.useApp();
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
+  const [stats, setStats] = useState<{
+    totalArticles: number;
+    articlesWithoutImage: number;
+    articlesWithoutDescription: number;
+    articlesWithoutBoth: number;
+  } | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshTime, setRefreshTime] = useState<Date>(new Date());
+
+  const loadNews = async () => {
+    try {
+      setLoading(true);
+      console.log('Đang tải tin tức...');
+      const response = await tuoitreService.fetchTuoitreNews();
+      console.log('Dữ liệu nhận được:', response);
+      
+      if (response && response.articles) {
+        // Đảm bảo mỗi bài viết có đầy đủ các trường bắt buộc
+        const processedArticles = response.articles.map((article: Article, index: number) => {
+          console.log(`Bài viết ${index + 1}:`, article);
+          return {
+            ...article,
+            id: article.url.split('/').pop() || Math.random().toString(),
+            description: article.description || 'Không có mô tả',
+            imageUrl: article.imageUrl || '/placeholder-image.jpg',
+            publishedAt: article.publishedAt || new Date().toISOString()
+          };
+        });
+        
+        // Lấy 5 bài viết đầu tiên làm tin nổi bật
+        const featured = [...processedArticles].slice(0, 5);
+        
+        // Các bài viết còn lại
+        const regularArticles = processedArticles.slice(5);
+        
+        setFeaturedArticles(featured);
+        setArticles(regularArticles);
+        setStats(response.stats);
+        setRefreshTime(new Date());
+        message.success(`Đã tải ${processedArticles.length} tin mới nhất`);
+      } else {
+        console.error('Dữ liệu trả về không hợp lệ:', response);
+        message.error('Không thể tải tin tức. Vui lòng thử lại sau.');
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải tin tức:', error);
+      message.error('Đã xảy ra lỗi khi tải tin tức. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNews();
+    
+    // Tự động làm mới tin tức mỗi 5 phút
+    const intervalId = setInterval(loadNews, 5 * 60 * 1000);
+    
+    // Dọn dẹp interval khi component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const handleRefresh = () => {
+    loadNews();
+  };
+
+  // Format số lượng bài viết
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('vi-VN').format(num);
+  };
+
+  if (loading && articles.length === 0) {
+    return (
+      <div className="news-container">
+        <Skeleton active paragraph={{ rows: 10 }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="news-container">
+      <div className="news-header">
+        <Title level={2} style={{ color: '#e31837' }}>Tin tức mới nhất từ Tuổi Trẻ Online</Title>
+        <div className="last-updated">
+          <ClockCircleOutlined /> Cập nhật lúc: {refreshTime.toLocaleTimeString('vi-VN')}
+        </div>
+        
+        {/* Tin nổi bật */}
+        {!loading && featuredArticles.length > 0 && (
+          <div className="featured-news" style={{ margin: '24px 0' }}>
+            <Title level={3} style={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              color: '#e31837',
+              borderBottom: '2px solid #e31837',
+              paddingBottom: '8px',
+              marginBottom: '16px'
+            }}>
+              <FireOutlined style={{ marginRight: '8px' }} />
+              Tin nổi bật
+            </Title>
+            
+            <Row gutter={[24, 24]}>
+              {/* Bài viết chính */}
+              {featuredArticles[0] && (
+                <Col xs={24} lg={24} style={{ marginBottom: '16px' }}>
+                  <Card
+                    hoverable
+                    onClick={() => window.open(featuredArticles[0].url, '_blank')}
+                    cover={
+                      <div style={{ height: '400px', overflow: 'hidden' }}>
+                        <Image
+                          src={featuredArticles[0].imageUrl}
+                          alt={featuredArticles[0].title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          preview={false}
+                        />
+                      </div>
+                    }
+                  >
+                    <Tag color="red" style={{ marginBottom: '12px' }}>NỔI BẬT</Tag>
+                    <Title level={3} style={{ marginBottom: '12px' }}>{featuredArticles[0].title}</Title>
+                    <Paragraph style={{ color: '#444', fontSize: '16px' }}>
+                      {featuredArticles[0].description}
+                    </Paragraph>
+                    <div style={{ color: '#666', marginTop: '12px' }}>
+                      {new Date(featuredArticles[0].publishedAt).toLocaleString('vi-VN')}
+                    </div>
+                  </Card>
+                </Col>
+              )}
+              
+              {/* 4 bài viết phụ */}
+              <Row gutter={[16, 16]} style={{ width: '100%', margin: 0 }}>
+                {featuredArticles.slice(1).map((article: Article, index: number) => (
+                          <Image
+                            src={article.imageUrl}
+                            alt={article.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            preview={false}
+                          />
+                        </div>
+                      }
+                    >
+                      <Title level={5} style={{ marginBottom: '8px' }}>{article.title}</Title>
+                      <div style={{ color: '#666', fontSize: '14px' }}>
+                        {new Date(article.publishedAt).toLocaleString('vi-VN')}
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </Row>
+          </div>
+        )}
+        
+        <Title level={3} style={{ marginTop: '32px', marginBottom: '16px', color: '#222' }}>
+          Tin mới nhất
+        </Title>
+        
+        {/* Tin nổi bật */}
+        {featuredArticles.length > 0 && (
+          <div className="featured-news" style={{ margin: '24px 0' }}>
+            <Title level={3} style={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              color: '#e31837',
+              borderBottom: '2px solid #e31837',
+              paddingBottom: '8px',
+              marginBottom: '16px'
+            }}>
+              <FireOutlined style={{ marginRight: '8px' }} />
+              Tin nổi bật
+            </Title>
+            
+            <Row gutter={[24, 24]}>
+              {/* Bài viết chính */}
+              {featuredArticles[0] && (
+                <Col xs={24} lg={24} style={{ marginBottom: '16px' }}>
+                  <Card
+                    hoverable
+                    onClick={() => window.open(featuredArticles[0].url, '_blank')}
+                    cover={
+                      <div style={{ height: '400px', overflow: 'hidden' }}>
+                        <Image
+                          src={featuredArticles[0].imageUrl}
+                          alt={featuredArticles[0].title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          preview={false}
+                        />
+                      </div>
+                    }
+                  >
+                    <Tag color="red" style={{ marginBottom: '12px' }}>NỔI BẬT</Tag>
+                    <Title level={3} style={{ marginBottom: '12px' }}>{featuredArticles[0].title}</Title>
+                    <Paragraph style={{ color: '#444', fontSize: '16px' }}>
+                      {featuredArticles[0].description}
+                    </Paragraph>
+                    <div style={{ color: '#666', marginTop: '12px' }}>
+                      {new Date(featuredArticles[0].publishedAt).toLocaleString('vi-VN')}
+                    </div>
+                  </Card>
+                </Col>
+              )}
+              
+              {/* 4 bài viết phụ */}
+              <Row gutter={[16, 16]} style={{ width: '100%', margin: 0 }}>
+                {featuredArticles.slice(1).map((article: Article, index: number) => (
+                  <Col key={article.id || index} xs={24} sm={12} md={12} lg={6}>
+                    <Card
+                      hoverable
+                      onClick={() => window.open(article.url, '_blank')}
+                      cover={
+                        <div style={{ height: '180px', overflow: 'hidden' }}>
+                          <Image
+                            src={article.imageUrl}
+                            alt={article.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            preview={false}
+                          />
+                        </div>
+                      }
+                    >
+                      <Title level={5} style={{ marginBottom: '8px' }}>{article.title}</Title>
+                      <div style={{ color: '#666', fontSize: '14px' }}>
+                        {new Date(article.publishedAt).toLocaleString('vi-VN')}
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </Row>
+          </div>
+        )}
+        
+        <Title level={3} style={{ marginTop: '32px', marginBottom: '16px', color: '#222' }}>
+          Tin mới nhất
+        </Title>
+        
+        {/* Tin nổi bật */}
+        {featuredArticles.length > 0 && (
+          <div className="featured-news" style={{ margin: '24px 0' }}>
+            <Title level={3} style={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              color: '#e31837',
+              borderBottom: '2px solid #e31837',
+              paddingBottom: '8px',
+              marginBottom: '16px'
+            }}>
+              <FireOutlined style={{ marginRight: '8px' }} />
+              Tin nổi bật
+            </Title>
+            
+            <Row gutter={[24, 24]}>
+              {/* Bài viết chính */}
+              {featuredArticles[0] && (
+                <Col xs={24} lg={24} style={{ marginBottom: '16px' }}>
+                  <Card
+                    hoverable
+                    onClick={() => window.open(featuredArticles[0].url, '_blank')}
+                    cover={
+                      <div style={{ height: '400px', overflow: 'hidden' }}>
+                        <Image
+                          src={featuredArticles[0].imageUrl}
+                          alt={featuredArticles[0].title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          preview={false}
+                        />
+                      </div>
+                    }
+                  >
+                    <Tag color="red" style={{ marginBottom: '12px' }}>NỔI BẬT</Tag>
+                    <Title level={3} style={{ marginBottom: '12px' }}>{featuredArticles[0].title}</Title>
+                    <Paragraph style={{ color: '#444', fontSize: '16px' }}>
+                      {featuredArticles[0].description}
+                    </Paragraph>
+                    <div style={{ color: '#666', marginTop: '12px' }}>
+                      {new Date(featuredArticles[0].publishedAt).toLocaleString('vi-VN')}
+                    </div>
+                  </Card>
+                </Col>
+              )}
+              
+              {/* 4 bài viết phụ */}
+              <Row gutter={[16, 16]} style={{ width: '100%', margin: 0 }}>
+                {featuredArticles.slice(1).map((article, index) => (
+                  <Col key={article.id || index} xs={24} sm={12} md={12} lg={6}>
+                    <Card
+                      hoverable
+                      onClick={() => window.open(article.url, '_blank')}
+                      cover={
+                        <div style={{ height: '180px', overflow: 'hidden' }}>
+                          <Image
+                            src={article.imageUrl}
+                            alt={article.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            preview={false}
+                          />
+                        </div>
+                      }
+                    >
+                      <Title level={5} style={{ marginBottom: '8px' }}>{article.title}</Title>
+                      <div style={{ color: '#666', fontSize: '14px' }}>
+                        {new Date(article.publishedAt).toLocaleString('vi-VN')}
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </Row>
+          </div>
+        )}
+        
+        <Title level={3} style={{ marginTop: '32px', marginBottom: '16px', color: '#222' }}>
+          Tin mới nhất
+        </Title>
+      </div>
+
+      {loading ? (
+        <Skeleton active paragraph={{ rows: 10 }} />
+      ) : (
+        <>
+          {stats && (
+            <div style={{ 
+              background: '#f0f9ff', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              marginBottom: '20px',
+              border: '1px solid #e6f7ff'
+            }}>
+              <Title level={4} style={{ marginTop: 0 }}>Thống kê bài viết</Title>
+              <Space size="large">
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 500 }}>Tổng số bài: {stats.totalArticles}</div>
+                  <div style={{ color: '#666' }}>bài viết</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 500, color: '#ff4d4f' }}>{stats.articlesWithoutImage}</div>
+                  <div style={{ color: '#666' }}>bài không có ảnh</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 500, color: '#faad14' }}>{stats.articlesWithoutDescription}</div>
+                  <div style={{ color: '#666' }}>bài không có mô tả</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 500, color: '#ff7a45' }}>{stats.articlesWithoutBoth}</div>
+                  <div style={{ color: '#666' }}>bài không có cả ảnh và mô tả</div>
+                </div>
+              </Space>
+            </div>
+          )}
+          
+          <div style={{ background: '#fff', padding: '20px', borderRadius: '8px' }}>
+            <List
+              itemLayout="vertical"
+              size="large"
+              dataSource={articles}
+              renderItem={(article, index) => (
+                <List.Item
+                  key={index}
+                  style={{ padding: '20px 0', borderBottom: '1px solid #f0f0f0' }}
+                  extra={
+                    article.imageUrl && article.imageUrl !== '/placeholder-image.jpg' ? (
+                      <Image
+                        width={200}
+                        src={article.imageUrl}
+                        alt={article.title}
+                        style={{ 
+                          borderRadius: '4px',
+                          maxHeight: '150px',
+                          objectFit: 'cover' 
+                        }}
+                        preview={false}
+                      />
+                    ) : null
+                  }
+                >
+                  <List.Item.Meta
+                    title={
+                      <a 
+                        href={article.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '18px',
+                          fontWeight: 500,
+                          color: '#222',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        {article.title}
+                      </a>
+                    }
+                    description={
+                      <Space>
+                        <Tag color="red">Tuổi Trẻ</Tag>
+                        <span style={{ color: '#666' }}>
+                          {article.publishedAt ? new Date(article.publishedAt).toLocaleString('vi-VN') : 'Không rõ thời gian'}
+                        </span>
+                      </Space>
+                    }
+                  />
+                  <div style={{ marginTop: '8px', color: '#444' }}>
+                    {article.description}
+                  </div>
+                </List.Item>
+              )}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default HomePage;

@@ -1,0 +1,112 @@
+import { Sequelize } from 'sequelize';
+import colors from 'colors';
+import { Dialect } from 'sequelize/types';
+import { DatabaseConfig } from '@/types/database';
+
+// Get database connection info from environment variables
+const DB_CONFIG: DatabaseConfig = {
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'news_website_dev',
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  dialect: 'postgres' as Dialect,
+  logging: process.env.NODE_ENV === 'development' 
+    ? (sql: string) => console.log(colors.blue(`[SQL] ${sql}`)) 
+    : false,
+  pool: {
+    max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+    min: parseInt(process.env.DB_POOL_MIN || '0', 10),
+    acquire: parseInt(process.env.DB_POOL_ACQUIRE || '30000', 10),
+    idle: parseInt(process.env.DB_POOL_IDLE || '10000', 10)
+  },
+  define: {
+    underscored: true,
+    timestamps: true,
+    freezeTableName: true,
+    paranoid: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    deletedAt: 'deleted_at',
+  },
+  dialectOptions: process.env.NODE_ENV === 'production' ? {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  } : {}
+};
+
+// Cấu hình cho các môi trường
+const config = {
+  development: {
+    ...DB_CONFIG,
+    logging: console.log
+  },
+  test: {
+    ...DB_CONFIG,
+    username: process.env['TEST_DB_USER'] || 'postgres',
+    password: process.env['TEST_DB_PASSWORD'] || 'postgres',
+    database: process.env['TEST_DB_NAME'] || 'news_website_test',
+    host: process.env['TEST_DB_HOST'] || '127.0.0.1',
+    port: parseInt(process.env['TEST_DB_PORT'] || '5433', 10),
+    logging: false,
+    dialectOptions: {}
+  },
+  production: {
+    ...DB_CONFIG,
+    logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    },
+    pool: {
+      ...DB_CONFIG.pool,
+      max: parseInt(process.env.DB_POOL_MAX || '20', 10)
+    }
+  }
+};
+
+const env = process.env.NODE_ENV || 'development';
+const currentConfig = config[env as keyof typeof config];
+
+// Khởi tạo kết nối Sequelize
+let sequelize: Sequelize;
+
+// Hàm kết nối và xác thực database
+const connectDB = async (): Promise<Sequelize> => {
+  try {
+    if (!sequelize) {
+      sequelize = new Sequelize(
+        currentConfig.database,
+        currentConfig.username,
+        currentConfig.password,
+        {
+          host: currentConfig.host,
+          port: currentConfig.port,
+          dialect: currentConfig.dialect,
+          logging: currentConfig.logging,
+          pool: currentConfig.pool,
+          define: currentConfig.define,
+          dialectOptions: currentConfig.dialectOptions
+        }
+      );
+    }
+    
+    await sequelize.authenticate();
+    console.log(colors.green('✅ Kết nối cơ sở dữ liệu thành công'));
+    return sequelize;
+  } catch (error) {
+    console.error(colors.red('❌ Lỗi kết nối cơ sở dữ liệu:'), error);
+    throw error;
+  }
+};
+
+export {
+  sequelize,
+  connectDB,
+  Sequelize,
+  currentConfig as config
+};

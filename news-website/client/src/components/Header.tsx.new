@@ -1,0 +1,64 @@
+import React, { useState, useEffect } from 'react';
+import { SearchOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
+import { Input, Layout, Space } from 'antd';
+import './Header.css';
+
+const { Header: AntHeader } = Layout;
+const { Search } = Input;
+
+const Header: React.FC = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY;
+      if (offset > 50) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  return (
+    <AntHeader className={`app-header ${isScrolled ? 'scrolled' : ''}`}>
+      <div className="header-container">
+        <div className="logo">
+          <Link to="/">
+            <img 
+              src="/logo192.png" 
+              alt="Logo" 
+              style={{ height: '40px' }} 
+            />
+          </Link>
+        </div>
+        
+        <div className="search-bar">
+          <Search
+            placeholder="Tìm kiếm tin tức..."
+            allowClear
+            enterButton={<SearchOutlined />}
+            size="large"
+            style={{ width: '100%', maxWidth: '500px' }}
+          />
+        </div>
+        
+        <div className="user-actions">
+          <Space size="middle">
+            <Link to="/dang-nhap" className="login-btn">
+              Đăng nhập / Đăng ký
+            </Link>
+          </Space>
+        </div>
+      </div>
+    </AntHeader>
+  );
+};
+
+export default Header;

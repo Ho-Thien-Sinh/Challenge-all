@@ -1,0 +1,258 @@
+/* Header styles */
+.app-header {
+  background: #001529 !important; /* Màu nền tối cho header */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  height: 64px;
+  line-height: 64px;
+}
+
+.app-header.scrolled {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 100%;
+}
+
+.logo img {
+  height: 40px;
+  transition: all 0.3s ease;
+}
+
+.search-bar {
+  flex: 1;
+  max-width: 600px;
+  margin: 0 24px;
+}
+
+.user-actions .login-btn,
+.user-actions .register-btn {
+  color: #e31837;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+.user-actions .login-btn:hover,
+.user-actions .register-btn:hover {
+  background: #fff0f0;
+}
+
+.user-actions .register-btn {
+  color: #0066cc;
+}
+
+/* User dropdown styles */
+.user-avatar {
+  padding: 0 12px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.user-avatar:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.user-name {
+  font-weight: 500;
+  color: #fff;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dropdown menu styles */
+.ant-dropdown-menu {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+}
+
+.ant-dropdown-menu-item {
+  padding: 8px 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.ant-dropdown-menu-item a {
+  color: #333;
+  text-decoration: none;
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* Main Navigation */
+.main-navigation {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  z-index: 999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.main-menu {
+  border: none;
+  line-height: 46px;
+  font-weight: 500;
+}
+
+.main-menu .ant-menu-item {
+  padding: 0 12px;
+  margin: 0 4px;
+  font-size: 14px;
+  color: #333;
+  transition: color 0.3s;
+}
+
+.main-menu .ant-menu-item:hover,
+.main-menu .ant-menu-item-selected {
+  color: #e31837;
+  border-bottom: 2px solid #e31837;
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+  .nav-container {
+    padding: 0 16px;
+  }
+  
+  .main-menu .ant-menu-item {
+    padding: 0 8px;
+    margin: 0 2px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 992px) {
+  .main-menu .ant-menu-overflow-item {
+    display: none;
+  }
+  
+  .main-menu .ant-menu-overflow-item:nth-last-child(-n+5) {
+    display: inline-block;
+  }
+  
+  .main-menu .ant-menu-overflow-item:last-child {
+    display: inline-block;
+  }
+}
+
+.ant-dropdown-menu-item .anticon {
+  margin-right: 8px;
+}
+
+.ant-dropdown-menu-item-danger {
+  color: #ff4d4f;
+}
+
+.ant-dropdown-menu-item-danger:hover {
+  color: #ff7875;
+  background-color: #fff1f0;
+}
+
+/* Responsive styles */
+/* Responsive styles */
+@media (max-width: 768px) {
+  .header-container {
+    padding: 0 16px;
+  }
+  
+  .search-bar {
+    display: none;
+  }
+  
+  .user-actions .login-btn {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 767px) {
+  .header-actions {
+    display: flex;
+    align-items: center;
+  }
+  
+  .search-input {
+    flex: 1;
+    margin-right: 8px;
+  }
+  
+  .user-menu-desktop {
+    display: none;
+  }
+  
+  .menu-toggle {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Dropdown menu */
+.ant-dropdown-menu {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+}
+
+.ant-dropdown-menu-item {
+  padding: 8px 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.ant-dropdown-menu-item-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.ant-dropdown-menu-item-divider {
+  margin: 4px 0;
+}
+
+/* Avatar */
+.ant-avatar {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.ant-avatar:hover {
+  opacity: 0.9;
+}

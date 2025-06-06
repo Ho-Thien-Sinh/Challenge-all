@@ -1,0 +1,494 @@
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { message } from 'antd';
+import { Article } from '../types';
+
+// Định nghĩa các kiểu dữ liệu
+interface ErrorResponse {
+  message?: string;
+  error?: string;
+  statusCode?: number;
+  [key: string]: any;
+}
+
+interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
+  statusCode?: number;
+}
+
+// Lấy base URL từ biến môi trường hoặc sử dụng mặc định
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1';
+
+// Tạo instance axios
+const api: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000, // 30 giây
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  withCredentials: true,
+});
+
+// Xử lý request trước khi gửi đi
+api.interceptors.request.use(
+  (config: AxiosRequestConfig) => {
+    // Thêm token vào header nếu có
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Thêm timestamp để tránh cache
+    if (config.method === 'get') {
+      config.params = {
+        ...config.params,
+        _t: new Date().getTime(),
+      };
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Xử lý response
+api.interceptors.response.use(
+  (response: AxiosResponse) => {
+    // Xử lý response thành công
+    if (response.data) {
+      return response.data;
+    }
+    return response;
+  },
+  (error: AxiosError<ErrorResponse>) => {
+    // Xử lý lỗi
+    if (error.response) {
+      const { status, data } = error.response;
+      const errorMessage = data?.message || data?.error || 'Đã có lỗi xảy ra';
+      
+      switch (status) {
+        case 401:
+          // Xử lý khi hết phiên đăng nhập
+          message.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          localStorage.removeItem('token');
+          // Chuyển hướng về trang đăng nhập
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          break;
+          
+        case 403:
+          message.error('Bạn không có quyền truy cập tài nguyên này');
+          break;
+          
+        case 404:
+          message.error('Không tìm thấy tài nguyên');
+          break;
+          
+        case 500:
+          message.error('Lỗi máy chủ nội bộ');
+          break;
+          
+        default:
+          message.error(errorMessage);
+      }
+      
+      return Promise.reject({
+        status,
+        message: errorMessage,
+        data: data,
+      });
+    } else if (error.request) {
+      // Lỗi không nhận được phản hồi từ server
+      message.error('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+      return Promise.reject({
+        message: 'Không thể kết nối đến máy chủ',
+        isNetworkError: true,
+      });
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Các hàm tiện ích
+const buildQueryString = (params: Record<string, any>): string => {
+  const query = new URLSearchParams();
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      if (Array.isArray(value)) {
+        value.forEach(item => query.append(`${key}[]`, item));
+      } else {
+        query.append(key, value);
+      }
+    }
+  });
+  
+  return query.toString();
+};
+
+// API Authentication
+const authApi = {
+  login: async (email: string, password: string): Promise<ApiResponse<{ token: string; user: any }>> => {
+    const response = await api.post('/auth/login', { email, password });
+    if (response.data?.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response;
+  },
+  
+  register: async (userData: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<ApiResponse<{ user: any }>> => {
+    return api.post('/auth/register', userData);
+  },
+  
+  getMe: async (): Promise<ApiResponse<{ user: any }>> => {
+    return api.get('/auth/me');
+  },
+  
+  logout: (): void => {
+    localStorage.removeItem('token');
+    delete api.defaults.headers.common['Authorization'];
+  },
+  
+  refreshToken: async (): Promise<ApiResponse<{ token: string }>> => {
+    return api.post('/auth/refresh-token');
+  },
+};
+
+// API Articles
+const articleApi = {
+  getArticles: async (params: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}): Promise<ApiResponse<{ articles: Article[]; total: number }>> => {
+    const query = buildQueryString({
+      page: params.page || 1,
+      limit: params.limit || 10,
+      ...(params.category && { category: params.category }),
+      ...(params.search && { search: params.search }),
+      ...(params.sortBy && { sortBy: params.sortBy }),
+      ...(params.sortOrder && { sortOrder: params.sortOrder }),
+    });
+    
+    return api.get(`/articles?${query}`);
+  },
+  
+  getArticleById: async (id: string | number): Promise<ApiResponse<Article>> => {
+    return api.get(`/articles/${id}`);
+  },
+  
+  createArticle: async (articleData: Partial<Article>): Promise<ApiResponse<Article>> => {
+    return api.post('/articles', articleData);
+  },
+  
+  updateArticle: async (id: string | number, articleData: Partial<Article>): Promise<ApiResponse<Article>> => {
+    return api.put(`/articles/${id}`, articleData);
+  },
+  
+  deleteArticle: async (id: string | number): Promise<ApiResponse<void>> => {
+    return api.delete(`/articles/${id}`);
+  },
+  
+  getCategories: async (): Promise<ApiResponse<{ id: string; name: string; slug: string }[]>> => {
+    return api.get('/articles/categories');
+  },
+};
+
+// API Users
+const userApi = {
+  getProfile: async (): Promise<ApiResponse<any>> => {
+    return api.get('/users/me');
+  },
+  
+  updateProfile: async (userData: any): Promise<ApiResponse<any>> => {
+    return api.put('/users/me', userData);
+  },
+  
+  changePassword: async (currentPassword: string, newPassword: string): Promise<ApiResponse<void>> => {
+    return api.put('/users/change-password', { currentPassword, newPassword });
+  },
+};
+
+// Kết hợp tất cả các API
+export const apiService = {
+  ...authApi,
+  ...articleApi,
+  ...userApi,
+  // Có thể thêm các API khác ở đây
+};
+
+export default api;
+          window.location.href = '/login';
+          break;
+        case 403:
+          message.error('Bạn không có quyền thực hiện thao tác này');
+          break;
+        case 404:
+          message.error('Không tìm thấy tài nguyên');
+          break;
+        case 500:
+          message.error('Lỗi máy chủ. Vui lòng thử lại sau');
+          break;
+        default:
+          message.error(data?.message || 'Đã xảy ra lỗi');
+      }
+    } else if (error.request) {
+      // Không nhận được phản hồi từ server
+      message.error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng');
+    } else {
+      // Lỗi khi thiết lập request
+      message.error('Đã xảy ra lỗi khi gửi yêu cầu');
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Hàm tiện ích để xây dựng query string cho filter, sort, pagination
+export const buildQueryString = (params: Record<string, any>): string => {
+  const query = new URLSearchParams();
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      if (Array.isArray(value)) {
+        value.forEach(item => query.append(`${key}[]`, item));
+      } else if (typeof value === 'object') {
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          if (subValue !== undefined && subValue !== null && subValue !== '') {
+            query.append(`${key}[${subKey}]`, String(subValue));
+          }
+        });
+      } else {
+        query.append(key, String(value));
+      }
+    }
+  });
+  
+  return query.toString();
+};
+
+export default api;
+
+export const getApiBaseUrl = () => api.defaults.baseURL || 'http://localhost:3001/api/v1';
+
+// Đã di chuyển import Article lên đầu file
+
+export interface PaginationResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface GetArticlesParams {
+  page?: number;
+  limit?: number;
+  category?: string;
+  sortBy?: string;
+  search?: string;
+  status?: string;
+  isFeatured?: boolean;
+  sortOrder?: 'asc' | 'desc';
+}
+
+// Tạo một hàm để chuẩn hóa dữ liệu bài viết từ API
+const normalizeArticle = (data: any): Article => {
+  return {
+    id: data.id || '',
+    title: data.title || '',
+    slug: data.slug || '',
+    excerpt: data.excerpt || data.description || '',
+    content: data.content || '',
+    imageUrl: data.imageUrl || data.image || data.thumbnail || '/placeholder-news.jpg',
+    category: data.category || 'Chưa phân loại',
+    author: data.author || 'Admin',
+    publishedAt: data.publishedAt || data.createdAt || new Date(),
+    updatedAt: data.updatedAt || new Date(),
+    viewCount: data.viewCount || 0,
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    status: data.status || 'published',
+    featured: Boolean(data.featured),
+    description: data.description || data.excerpt || data.content?.substring(0, 200) + '...' || '',
+    source: data.source,
+    url: data.url,
+    sourceUrl: data.sourceUrl,
+    readingTime: data.readingTime,
+    commentsCount: data.commentsCount,
+    likesCount: data.likesCount,
+    sharesCount: data.sharesCount,
+    metaTitle: data.metaTitle,
+    metaDescription: data.metaDescription,
+    metaKeywords: data.metaKeywords,
+    images: data.images,
+    videoUrl: data.videoUrl,
+    categories: data.categories
+  };
+};
+
+/**
+ * Lấy danh sách bài viết theo danh mục
+ * @param category Slug của danh mục
+ * @param params Các tham số phân trang và lọc
+ */
+export const getArticlesByCategory = async (
+  category: string,
+  params: GetArticlesParams = {}
+): Promise<PaginationResult<Article>> => {
+  try {
+    const { page = 1, limit = 10, sortBy = '-publishedAt' } = params;
+    
+    const response = await api.get(`/articles`, {
+      params: {
+        category,
+        page,
+        limit,
+        sortBy,
+        status: 'published' // Chỉ lấy bài đã xuất bản
+      }
+    });
+
+    // Xử lý dữ liệu trả về
+    const articles = Array.isArray(response.data) ? response.data : [];
+    const total = parseInt(response.headers['x-total-count'] || articles.length, 10);
+    
+    return {
+      data: articles.map(normalizeArticle),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách bài viết:', error);
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      }
+    };
+  }
+};
+
+/**
+ * Lấy danh sách bài viết mới nhất
+ */
+export const getLatestNews = async (params: GetArticlesParams = {}): Promise<PaginationResult<Article>> => {
+  const {
+    page = 1,
+    limit = 10,
+    category,
+    search,
+    sortBy = '-publishedAt',
+    sortOrder = 'desc' 
+  } = params;
+
+  try {
+    const response = await api.get(`/articles`, {
+      params: {
+        page,
+        limit,
+        category,
+        search,
+        sortBy,
+        sortOrder,
+        status: 'published'
+      }
+    });
+    
+    return {
+      data: response.data,
+      pagination: {
+        total: response.headers['x-total-count'] || response.data.length,
+        page,
+        limit,
+        totalPages: Math.ceil((response.headers['x-total-count'] || response.data.length) / limit)
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching latest news:', error);
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 1
+      }
+    };
+  }
+};
+
+export const getLogoUrl = async (): Promise<string> => {
+  try {
+    const response = await api.get('/site/logo');
+    return response.data.logoUrl || '/logo.png';
+  } catch (error) {
+    console.error('Error fetching logo URL:', error);
+    return '/logo.png';
+  }
+};
+
+interface SearchArticlesParams {
+  page?: number;
+  limit?: number;
+  category?: string;
+  sort?: string;
+}
+
+export const searchArticles = async (
+  query: string, 
+  { page = 1, limit = 10, category, sort = '-publishedAt' }: SearchArticlesParams = {}
+): Promise<PaginationResult<Article>> => {
+  try {
+    const response = await api.get('/articles/search', {
+      params: {
+        q: query,
+        page,
+        limit,
+        category,
+        sort
+      }
+    });
+    
+    // Chuẩn hóa dữ liệu trả về
+    if (response.data && Array.isArray(response.data.data)) {
+      response.data.data = response.data.data.map((article: any) => normalizeArticle(article));
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error searching articles:', error);
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0
+      }
+    };
+  }
+};

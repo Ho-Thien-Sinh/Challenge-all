@@ -1,0 +1,53 @@
+doctype html
+html
+  head
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        padding: 20px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .content {
+        padding: 20px 0;
+      }
+      .button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white !important;
+        text-decoration: none;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        font-size: 12px;
+        color: #777;
+        text-align: center;
+      }
+  body
+    .header
+      h1 Chào mừng đến với #{appName}!
+    .content
+      p Xin chào #{name},
+      p Cảm ơn bạn đã đăng ký tài khoản tại #{appName}. Chúng tôi rất vui mừng được chào đón bạn!
+      p Để bắt đầu sử dụng tài khoản của mình, vui lòng xác minh địa chỉ email của bạn bằng cách nhấp vào nút bên dưới:
+      p(style="text-align: center;")
+        a(href=verificationUrl, class="button") Xác minh Email
+      p Nếu nút không hoạt động, bạn có thể sao chép và dán liên kết sau vào trình duyệt của mình:
+      p(style="word-break: break-all;") #{verificationUrl}
+      p Liên kết xác minh sẽ hết hạn sau 24 giờ.
+      p Nếu bạn không tạo tài khoản này, vui lòng bỏ qua email này.
+    .footer
+      p Đây là email tự động, vui lòng không trả lời email này.
+      p © #{new Date().getFullYear()} #{appName}. Mọi quyền được bảo lưu.
