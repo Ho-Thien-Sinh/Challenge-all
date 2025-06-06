@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\Users\\HI\\Downloads\\cl7\\news-website\\server\\logs\\.b234d0398c250f7f0189d960077cfd3cc1b19d94-audit.json",
+    "files": [
+        {
+            "date": 1749026451838,
+            "name": "C:\\Users\\HI\\Downloads\\cl7\\news-website\\server\\logs\\combined-2025-06-04.log",
+            "hash": "2d3435725d72f8aeb2958cfb5ad8b4a3d9cc76c41b5a47f89cb8ecdaea7d4ef3"
+        },
+        {
+            "date": 1749089954176,
+            "name": "C:\\Users\\HI\\Downloads\\cl7\\news-website\\server\\logs\\combined-2025-06-05.log",
+            "hash": "ee7a14eee35e2482314b0b7dbeb3033fb317d55c7fd00ba60459bc0beec9c80d"
+        },
+        {
+            "date": 1749184527130,
+            "name": "C:\\Users\\HI\\Downloads\\cl7\\news-website\\server\\logs\\combined-2025-06-06.log",
+            "hash": "973751d7c6fc6ef24bcf82669f653bea9ff35fa3c06114b9fdee3036646f276c"
+        }
+    ],
+    "hashType": "sha256"
+}
